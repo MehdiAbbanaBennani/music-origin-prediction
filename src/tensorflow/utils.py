@@ -1,32 +1,22 @@
 from math import cos, sin, sqrt, asin, pi
 
-import autograd.numpy as np
+import numpy as np
 import pandas as pd
 import tensorflow as tf
 from tensorflow.python.framework import ops
-from sklearn.model_selection import train_test_split
+
 from parameters import R
 
-# TODO : rescale the data
 
 def extract_data(data_dir):
   """ Splits X and y and converts y to radian"""
   df = pd.read_csv(data_dir)
   data = df.as_matrix()
   X = data[:, :-2]
-  y = np.array(to_radian(data[:, -2:]))
-  # y = to_radian(y)
+  y = data[:, -2:]
+  y = [to_radian(deg) for deg in y]
   return {"X": X,
           "y": y}
-
-def load_data(data_dir, test_size):
-  data = extract_data(data_dir)
-  X_train, X_test, y_train, y_test = train_test_split(data["X"], data["y"],
-                                                      test_size=test_size,
-                                                      random_state=42)
-  return X_train, X_test, y_train, y_test
-
-
 
 
 def acos_dist(coord_1, coord_2, R=R):
@@ -64,7 +54,7 @@ def grad_acos_dist(coord_1, coord_2, R=R):
 
 def to_radian(deg):
   return deg / 180 * pi
-to_radian = np.vectorize(to_radian)
+
 
 np_acos_dist = np.vectorize(acos_dist)
 

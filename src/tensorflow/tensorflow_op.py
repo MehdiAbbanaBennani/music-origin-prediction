@@ -5,7 +5,7 @@ from tensorflow.python.framework import ops
 
 
 def f(x, y) :
-  return tf.pow(x, 2) - 2 * tf.pow(y, 2)
+  return tf.pow(x[0], 2) - 2 * tf.pow(y[0], 2)
 
 @tf.RegisterGradient("distance")
 def grad_f(op, grad):
@@ -14,9 +14,11 @@ def grad_f(op, grad):
   return grad * (2 * x), grad * (-4 * y)
 
 with tf.Session() as sess :
-  x = tf.constant([0., 1.])
-  y = tf.constant([0., 5.])
+  # x = tf.constant([0., 1.])
+  x = tf.Variable([[0., 9.], [1., 25]], tf.float32)
+  y = tf.Variable([[0., 9.], [5., 52]], tf.float32)
+  # y = tf.constant([0., 5.])
   z = f(x, y)
   tf.initialize_all_variables().run()
-  print(x.eval(), y.eval(), z.eval())
+  # print(x.eval(), y.eval(), z.eval())
   print([tf.gradients(z, [x, y])[i].eval() for i in range(2)])

@@ -1,64 +1,51 @@
-import sys
-sys.path.extend(['/home/mehdi/PycharmProjects/music-origin-prediction/src'])
+import autograd.numpy as np
+from utils import load_data
+from autograd import grad
+from neural_net import batch_generator, initialize_parameters, loss
+from autograd.misc.optimizers import adam
 
-import tensorflow as tf
-from sklearn.utils import shuffle
-from utils import tf_acos_dist, extract_data
-from parameters import *
-from sklearn.model_selection import train_test_split
+from numpy import ceil
+from parameters import DATA_DIR, TEST_SIZE, BATCH_SIZE, EPOCHS
+
+if __name__ == '__main__':
+  # Model parameters
+  layer_sizes = [116, 10, 2]
+  L2_reg = 0.1
+  activations = [np.tanh, np.tanh]
+
+  # Training parameters
+  step_size = 0.1
+
+  # Initial neural net parameters
+  init_params = initialize_parameters(layer_sizes)
+
+  print("Loading training data...")
+  X_train, X_test, y_train, y_test = load_data(DATA_DIR, TEST_SIZE)
+  # train_generator = batch_generator(X_train, y_train, BATCH_SIZE)
+  # test_generator = batch_generator(X_test, y_test, BATCH_SIZE)
+  num_batches = int(ceil(X_train.shape[0] / BATCH_SIZE))
+
+  def batch_indices(iter):
+    idx = iter % num_batches
+    return slice(idx * BATCH_SIZE, (idx + 1) * BATCH_SIZE)
+
+  def objective(parameters, iter):
+    idx = batch_indices(iter)
+    return loss(parameters, X_train[idx], y_train[idx], L2_reg, activations)
+
+  # Get gradient of objective using autograd.
+  objective_grad = grad(objective)
+
+  def print_perf(parameters, iter, gradient):
+    if iter % num_batches == 0:
+      train_acc = loss(parameters, X_train, y_train, L2_reg, activations)
+      test_acc = loss(parameters, X_test, y_test, L2_reg, activations)
+      print(
+        "{:15}|{:20}|{:20}".format(iter // num_batches, train_acc, test_acc))
 
 
-# Import the parameters
-if parameters["a_1_fun"] == "tanh" :
-  a_1_fun = tf.tanh
-if parameters["a_1_fun"] == "relu" :
-  a_1_fun = tf.nn.relu
-learning_rate = parameters["learning_rate"]
-layers_dims = parameters["layer_dims"]
-test_size = parameters["test_size"]
-
-# Import and preprocess the data
-data = extract_data(DATA_DIR)
-X_train, X_test, y_train, y_test = train_test_split(data["X"], data["y"],
-                                                    test_size = test_size,
-                                                    random_state = 42)
-
-# Build the tensorgraph
-X = tf.placeholder("float", [None, layers_dims[0]])
-y = tf.placeholder("float", [None, layers_dims[2]])
-
-W_1 = tf.Variable(tf.random_normal([layers_dims[0], layers_dims[1]]))
-W_2 = tf.Variable(tf.random_normal([layers_dims[1], layers_dims[2]]))
-b_1 = tf.Variable(tf.random_normal([layers_dims[1]]))
-b_2 = tf.Variable(tf.random_normal([layers_dims[2]]))
-
-z_1 = tf.matmul(X, W_1) + b_1
-a_1 = a_1_fun(z_1)
-z_2 = tf.matmul(a_1, W_2) + b_2
-a_2 = tf.tanh(z_2)
-
-loss = tf.reduce_sum(tf_acos_dist([a_2, y]))
-optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-train_op = optimizer.minimize(loss)
-
-with tf.Session() as sess:
-  sess.run(tf.global_variables_initializer())
-  num_examples = len(X_train)
-
-  print("Training...")
-  print()
-  for i in range(EPOCHS):
-    X_train_used, y_train_used = shuffle(X_train, y_train)
-    for offset in range(0, num_examples, BATCH_SIZE):
-      end = offset + BATCH_SIZE
-      batch_x, batch_y = X_train_used[offset:end], y_train_used[offset:end]
-      sess.run(train_op, feed_dict={X: batch_x, y: batch_y})
-
-    # validation_loss = evaluate(X_valid, y_valid)
-    print("EPOCH {} ...".format(i + 1))
-    # print("Validation Accuracy = {:.3f}".format(validation_loss))
-    print()
-
-  # saver.save(sess, './lenet')
-  # print("Model saved")
-
+  optimized_params = adam(objective_grad,
+                          init_params,
+                          step_size=step_size,
+                          num_iters=EPOCHS * num_batches,
+                          callback=print_perf)
