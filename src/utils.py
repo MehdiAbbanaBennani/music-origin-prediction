@@ -36,3 +36,6 @@ def load_data(data_dir, test_size):
                                                       test_size=test_size,
                                                       random_state=42)
   return X_train, X_test, y_train, y_test
+
+def relu(x):
+  return np.maximum(0, x)
