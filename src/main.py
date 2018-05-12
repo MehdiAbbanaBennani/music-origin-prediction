@@ -1,7 +1,7 @@
 import autograd.numpy as np
 from utils import load_data
 from autograd import grad
-from neural_net import batch_generator, initialize_parameters, loss
+from neural_net import initialize_parameters, loss, error, reg_loss
 from autograd.misc.optimizers import adam
 
 from numpy import ceil
@@ -9,12 +9,12 @@ from parameters import DATA_DIR, TEST_SIZE, BATCH_SIZE, EPOCHS
 
 if __name__ == '__main__':
   # Model parameters
-  layer_sizes = [116, 10, 2]
-  L2_reg = 0.1
+  layer_sizes = [116, 20, 2]
+  L2_reg = 1
   activations = [np.tanh, np.tanh]
 
   # Training parameters
-  step_size = 0.1
+  step_size = 0.001
 
   # Initial neural net parameters
   init_params = initialize_parameters(layer_sizes)
@@ -38,10 +38,14 @@ if __name__ == '__main__':
 
   def print_perf(parameters, iter, gradient):
     if iter % num_batches == 0:
-      train_acc = loss(parameters, X_train, y_train, L2_reg, activations)
-      test_acc = loss(parameters, X_test, y_test, L2_reg, activations)
+      train_acc = error(parameters, X_train, y_train, activations)
+      test_acc = error(parameters, X_test, y_test, activations)
+      train_reg = reg_loss(parameters, L2_reg)
+      test_reg = reg_loss(parameters, L2_reg)
       print(
-        "{:15}|{:20}|{:20}".format(iter // num_batches, train_acc, test_acc))
+        "{:15}|{:20}|{:20}|{:20}|{:20}".format(iter // num_batches,
+                                               train_acc, test_acc,
+                                               train_reg, test_reg))
 
 
   optimized_params = adam(objective_grad,

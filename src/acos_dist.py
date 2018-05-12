@@ -1,7 +1,10 @@
 from parameters import R
 import autograd.numpy as np
+from math import pi
 
 def acos_dist(coord_1, coord_2, R=R):
+  coord_1 *= pi
+
   lat_1 = coord_1[0]
   lat_2 = coord_2[0]
   long_1 = coord_1[1]

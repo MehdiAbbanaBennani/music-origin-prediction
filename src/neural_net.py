@@ -2,7 +2,7 @@ import autograd.numpy as np
 import autograd.numpy.random as npr
 from acos_dist import acosdist
 from autograd.misc.flatten import flatten
-
+from math import sqrt
 from numpy.random import permutation
 
 
@@ -23,7 +23,9 @@ def initialize_parameters(layer_sizes) :
   parameters = []
   for i in range(nb_layers):
     matrix_size = layer_sizes[i] * layer_sizes[i+1]
-    W = npr.normal(0, 0.1, matrix_size).reshape((layer_sizes[i], layer_sizes[i+1]))
+
+    xavier_var = sqrt(2. / (layer_sizes[i] + layer_sizes[i+1]))
+    W = npr.normal(0, xavier_var, matrix_size).reshape((layer_sizes[i], layer_sizes[i+1]))
     b = np.zeros(layer_sizes[i+1])
     parameters.append((W, b))
   return parameters
@@ -48,6 +50,13 @@ def regularization_loss(parameters):
   for W, b in parameters :
     loss += l2_norm(W) + l2_norm(b)
   return loss
+
+def error(parameters, X_train, y_train, activations):
+  y_pred = fully_connected(X_train, parameters, activations)
+  return acosdist(y_pred, y_train)
+
+def reg_loss(parameters, L2_reg):
+  return L2_reg * regularization_loss(parameters)
 
 def loss(parameters, X_train, y_train, L2_reg, activations):
   y_pred = fully_connected(X_train, parameters, activations)
