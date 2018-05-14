@@ -1,10 +1,12 @@
-from acos_dist import acos_dist
-import numpy as np
-from numpy import argmin
-from parameters import R
 from math import pi
 
-class Coordinates :
+import numpy as np
+from numpy import argmin
+
+from parameters import R
+
+
+class Coordinates:
   def __init__(self, all_coords):
     self.all_coords = list(all_coords)
     self.unique_coords = self.to_unique(self.all_coords)
@@ -22,6 +24,7 @@ class Coordinates :
     return self.unique_coords[min_idx]
 
   def min_coords(self, coords):
+    """ coords are in the range [-1,1]"""
     return [list(self.min_coord(coord)) for coord in coords]
 
   @staticmethod
@@ -34,6 +37,6 @@ class Coordinates :
     long_2 = coord_2[1]
 
     f = np.sin((lat_2 - lat_1) / 2) ** 2 + np.cos(lat_1) * np.cos(
-      lat_2) * np.sin(
+        lat_2) * np.sin(
         (long_1 - long_2) / 2) ** 2
     return 2 * R * np.arcsin(np.sqrt(f))

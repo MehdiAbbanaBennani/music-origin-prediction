@@ -1,41 +1,33 @@
 import itertools
 import json
+import datetime
 from tqdm import tqdm
 
-import autograd.numpy as np
-
 from NeuralNet import NeuralNet
-from parameters import LOG_FILE
+from parameters import LOG_DIR
+
 
 class Experiment:
-  def __init__(self, hyperparameters):
-    self.logs = {"train_acc": [],
-                 "test_acc": [],
-                 "train_reg": [],
-                 "test_reg": [],
-                 "L2_reg": [],
-                 "step_size": [],
-                 "second_activation": [],
-                 "middle_layer_size": []
-                 }
+  def __init__(self, hyperparameters_lists):
+    self.logs = self.initialize_logs(hyperparameters_lists)
+    self.hyperparameters_lists = hyperparameters_lists
 
-    self.middle_layer_sizes = hyperparameters["middle_layer_sizes"]
-    self.second_activations = hyperparameters["second_activations"]
-    self.step_sizes = hyperparameters["step_sizes"]
-    self.L2_regs = hyperparameters["L2_regs"]
+    now = datetime.datetime.now().strftime("%b:%d:%Y:%H:%M:%S")
+    self.log_file = LOG_DIR + "run_logs:" + now + ".json"
 
-  def log(self, log_dict, middle_layer_size, second_activation, step_size,
-      L2_reg):
-    self.logs["middle_layer_size"].append(middle_layer_size)
-    self.logs["step_size"].append(step_size)
-    self.logs["L2_reg"].append(L2_reg)
+  @staticmethod
+  def initialize_logs(hyperparameters_lists):
+    results_keys = ["train_acc", "test_acc", "reg"]
+    all_keys = list(hyperparameters_lists.keys()) + results_keys
+    logs = {}
+    for key in all_keys:
+      logs[key] = []
+    return logs
 
-    if second_activation is np.tanh:
-      self.logs["second_activation"].append("tanh")
-    else:
-      self.logs["second_activation"].append("relu")
-
+  def log(self, log_dict, hyperparameters):
     for key, val in log_dict.items():
+      self.logs[key].append(val)
+    for key, val in hyperparameters.items():
       self.logs[key].append(val)
 
   def log_to_file(self, log_file):
@@ -44,14 +36,13 @@ class Experiment:
       outfile.write(data)
 
   def run(self):
-    hyperparameters_list = [self.middle_layer_sizes, self.second_activations,
-                            self.step_sizes, self.L2_regs]
-    for x in tqdm(itertools.product(*hyperparameters_list)):
-      middle_layer_size, second_activation, step_size, L2_reg = x
-      layer_sizes = [116, middle_layer_size, 2]
-      activations = [np.tanh, second_activation]
-      model = NeuralNet(layer_sizes, L2_reg, activations, step_size)
+    for hyperparameters in tqdm(self.dict_product(self.hyperparameters_lists)):
+      model = NeuralNet(hyperparameters)
       log_dict = model.run()
-      self.log(log_dict, middle_layer_size, second_activation, step_size, L2_reg)
+      self.log(log_dict, hyperparameters)
 
-    self.log_to_file(LOG_FILE)
+    self.log_to_file(self.log_file)
+
+  @staticmethod
+  def dict_product(dicts):
+    return (dict(zip(dicts, x)) for x in itertools.product(*dicts.values()))
